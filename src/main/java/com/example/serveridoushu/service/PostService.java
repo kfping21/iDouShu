@@ -1,12 +1,15 @@
 package com.example.serveridoushu.service;
 
 import com.example.serveridoushu.model.Post;
+import com.example.serveridoushu.model.User;
 import com.example.serveridoushu.repository.PostRepository;
+import com.example.serveridoushu.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PostService {
@@ -14,13 +17,22 @@ public class PostService {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // 发布帖子
-    public Post createPost(Post post) {
-        // 确保设置创建时间
-        if (post.getCreatedAt() == null) {
-            post.setCreatedAt(LocalDateTime.now());
+    public Post createPost(Post post, Long userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            post.setUser(user);
+
+            if (post.getCreatedAt() == null) {
+                post.setCreatedAt(LocalDateTime.now());
+            }
+            return postRepository.save(post);
         }
-        return postRepository.save(post);
+        throw new RuntimeException("用户不存在");
     }
 
     // 获取用户的所有帖子
@@ -28,9 +40,9 @@ public class PostService {
         return postRepository.findByUserId(userId);
     }
 
-    // 添加其他可能用到的方法
+    // 获取所有帖子（按时间倒序）
     public List<Post> getAllPosts() {
-        return postRepository.findAll();
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Post getPostById(Long id) {
@@ -39,5 +51,18 @@ public class PostService {
 
     public void deletePost(Long id) {
         postRepository.deleteById(id);
+    }
+
+    // 更新帖子
+    public Post updatePost(Long id, Post postDetails) {
+        Optional<Post> postOptional = postRepository.findById(id);
+        if (postOptional.isPresent()) {
+            Post post = postOptional.get();
+            post.setTitle(postDetails.getTitle());
+            post.setContent(postDetails.getContent());
+            post.setImageUrl(postDetails.getImageUrl());
+            return postRepository.save(post);
+        }
+        return null;
     }
 }
