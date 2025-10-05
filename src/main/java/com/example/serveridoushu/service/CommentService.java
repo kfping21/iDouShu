@@ -33,6 +33,9 @@ public class CommentService {
             User user = userOptional.get();
             Post post = postOptional.get();
 
+            // 验证评论内容
+            validateCommentContent(content);
+
             Comment comment = new Comment(content, user, post);
             return commentRepository.save(comment);
         }
@@ -55,6 +58,24 @@ public class CommentService {
         }
     }
 
+    // 更新评论
+    public Comment updateComment(Long commentId, Long userId, String content) {
+        Optional<Comment> commentOptional = commentRepository.findById(commentId);
+        if (commentOptional.isPresent()) {
+            Comment comment = commentOptional.get();
+            // 只能更新自己的评论
+            if (comment.getUser().getId().equals(userId)) {
+                // 验证评论内容
+                validateCommentContent(content);
+                comment.setContent(content);
+                return commentRepository.save(comment);
+            } else {
+                throw new RuntimeException("无权更新该评论");
+            }
+        }
+        throw new RuntimeException("评论不存在");
+    }
+
     // 获取帖子的评论列表
     public List<Comment> getPostComments(Long postId) {
         return commentRepository.findByPostId(postId);
@@ -70,19 +91,21 @@ public class CommentService {
         return commentRepository.countByPostId(postId);
     }
 
-    // 更新评论
-    public Comment updateComment(Long commentId, Long userId, String content) {
-        Optional<Comment> commentOptional = commentRepository.findById(commentId);
-        if (commentOptional.isPresent()) {
-            Comment comment = commentOptional.get();
-            // 只能更新自己的评论
-            if (comment.getUser().getId().equals(userId)) {
-                comment.setContent(content);
-                return commentRepository.save(comment);
-            } else {
-                throw new RuntimeException("无权更新该评论");
+    // 评论内容验证
+    private void validateCommentContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            throw new RuntimeException("评论内容不能为空");
+        }
+        if (content.length() > 500) {
+            throw new RuntimeException("评论内容不能超过500字符");
+        }
+
+        // 敏感词过滤（简单示例）
+        String[] sensitiveWords = {"暴力", "色情", "赌博", "辱骂"};
+        for (String word : sensitiveWords) {
+            if (content.contains(word)) {
+                throw new RuntimeException("评论内容包含敏感词汇");
             }
         }
-        throw new RuntimeException("评论不存在");
     }
 }

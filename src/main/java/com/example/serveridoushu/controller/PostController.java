@@ -1,5 +1,6 @@
 package com.example.serveridoushu.controller;
 
+import com.example.serveridoushu.dto.ApiResponse;
 import com.example.serveridoushu.model.Post;
 import com.example.serveridoushu.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,94 +20,79 @@ public class PostController {
 
     // 发布帖子
     @PostMapping("/create")
-    public ResponseEntity<?> createPost(@RequestBody Post post, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<?>> createPost(@RequestBody Post post, @RequestParam Long userId) {
         try {
             Post createdPost = postService.createPost(post, userId);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "帖子发布成功");
-            response.put("postId", createdPost.getId());
-            response.put("userId", createdPost.getUserId());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "发布失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            Map<String, Object> data = new HashMap<>();
+            data.put("postId", createdPost.getId());
+            data.put("userId", createdPost.getUserId());
+            return ResponseEntity.ok(ApiResponse.success("帖子发布成功", data));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("发布失败: " + e.getMessage()));
         }
     }
 
     // 获取用户的所有帖子
     @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getUserPosts(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<?>> getUserPosts(@PathVariable Long userId) {
         List<Post> posts = postService.getUserPosts(userId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", userId);
-        response.put("posts", posts);
-        response.put("count", posts.size());
-        return ResponseEntity.ok(response);
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("posts", posts);
+        data.put("count", posts.size());
+        return ResponseEntity.ok(ApiResponse.success("获取用户帖子成功", data));
     }
 
     // 获取所有帖子（首页时间线）
     @GetMapping
-    public ResponseEntity<?> getAllPosts() {
+    public ResponseEntity<ApiResponse<?>> getAllPosts() {
         List<Post> posts = postService.getAllPosts();
-        Map<String, Object> response = new HashMap<>();
-        response.put("posts", posts);
-        response.put("total", posts.size());
-        return ResponseEntity.ok(response);
+        Map<String, Object> data = new HashMap<>();
+        data.put("posts", posts);
+        data.put("total", posts.size());
+        return ResponseEntity.ok(ApiResponse.success("获取所有帖子成功", data));
     }
 
     // 获取帖子详情
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPostById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<?>> getPostById(@PathVariable Long id) {
         Post post = postService.getPostById(id);
         if (post != null) {
-            return ResponseEntity.ok(post);
+            return ResponseEntity.ok(ApiResponse.success("获取帖子详情成功", post));
         }
-
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "帖子不存在");
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.badRequest().body(ApiResponse.error("帖子不存在"));
     }
 
     // 删除帖子
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletePost(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<?>> deletePost(@PathVariable Long id) {
         try {
             postService.deletePost(id);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "帖子删除成功");
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("帖子删除成功"));
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "删除失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return ResponseEntity.badRequest().body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
+
+    // 更新帖子
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<?>> updatePost(@PathVariable Long id, @RequestBody Post postDetails) {
+        try {
+            Post updatedPost = postService.updatePost(id, postDetails);
+            return ResponseEntity.ok(ApiResponse.success("帖子更新成功", updatedPost));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("更新失败: " + e.getMessage()));
         }
     }
 
     // 获取帖子统计
     @GetMapping("/user/{userId}/stats")
-    public ResponseEntity<?> getUserPostStats(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<?>> getUserPostStats(@PathVariable Long userId) {
         List<Post> posts = postService.getUserPosts(userId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", userId);
-        response.put("totalPosts", posts.size());
-        response.put("lastPostDate", posts.isEmpty() ? null : posts.get(0).getCreatedAt());
-        return ResponseEntity.ok(response);
-    }
-
-    // 更新帖子
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Post postDetails) {
-        Post updatedPost = postService.updatePost(id, postDetails);
-        if (updatedPost != null) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "帖子更新成功");
-            response.put("post", updatedPost);
-            return ResponseEntity.ok(response);
-        }
-
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "更新失败，帖子不存在");
-        return ResponseEntity.badRequest().body(error);
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("totalPosts", posts.size());
+        data.put("lastPostDate", posts.isEmpty() ? null : posts.get(0).getCreatedAt());
+        return ResponseEntity.ok(ApiResponse.success("获取帖子统计成功", data));
     }
 }

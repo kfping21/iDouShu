@@ -28,6 +28,14 @@ public class UserService {
             throw new RuntimeException("邮箱已被注册");
         }
 
+        // 验证密码强度
+        validatePassword(user.getPassword());
+
+        // 设置默认昵称
+        if (user.getNickName() == null) {
+            user.setNickName(user.getUsername());
+        }
+
         return userRepository.save(user);
     }
 
@@ -103,5 +111,27 @@ public class UserService {
     // 检查邮箱是否存在
     public boolean isEmailExists(String email) {
         return userRepository.findByEmail(email) != null;
+    }
+
+    // 密码强度验证
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new RuntimeException("密码长度至少6位");
+        }
+        // 检查是否包含字母和数字
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+
+        for (char c : password.toCharArray()) {
+            if (Character.isLetter(c)) {
+                hasLetter = true;
+            } else if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+        }
+
+        if (!hasLetter || !hasDigit) {
+            throw new RuntimeException("密码必须包含字母和数字");
+        }
     }
 }

@@ -27,6 +27,9 @@ public class PostService {
             User user = userOptional.get();
             post.setUser(user);
 
+            // 验证帖子内容
+            validatePostContent(post.getContent());
+
             if (post.getCreatedAt() == null) {
                 post.setCreatedAt(LocalDateTime.now());
             }
@@ -58,11 +61,41 @@ public class PostService {
         Optional<Post> postOptional = postRepository.findById(id);
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
-            post.setTitle(postDetails.getTitle());
-            post.setContent(postDetails.getContent());
-            post.setImageUrl(postDetails.getImageUrl());
+
+            // 验证更新的内容
+            if (postDetails.getContent() != null) {
+                validatePostContent(postDetails.getContent());
+                post.setContent(postDetails.getContent());
+            }
+
+            if (postDetails.getTitle() != null) {
+                post.setTitle(postDetails.getTitle());
+            }
+
+            if (postDetails.getImageUrl() != null) {
+                post.setImageUrl(postDetails.getImageUrl());
+            }
+
             return postRepository.save(post);
         }
-        return null;
+        throw new RuntimeException("帖子不存在");
+    }
+
+    // 内容合法性验证
+    private void validatePostContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            throw new RuntimeException("帖子内容不能为空");
+        }
+        if (content.length() > 5000) {
+            throw new RuntimeException("帖子内容不能超过5000字符");
+        }
+
+        // 敏感词过滤（简单示例）
+        String[] sensitiveWords = {"暴力", "色情", "赌博"};
+        for (String word : sensitiveWords) {
+            if (content.contains(word)) {
+                throw new RuntimeException("帖子内容包含敏感词汇");
+            }
+        }
     }
 }
