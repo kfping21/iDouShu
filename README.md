@@ -1,0 +1,2 @@
+# iDouShu
+server for iDouShu
